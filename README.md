@@ -1,6 +1,8 @@
 # cpp-api
 
-REST service using libhttpserver library.
+REST service using Pistache.
 
-### libhttpserver:
-https://github.com/etr/libhttpserver
+### Requirements
+brew install libmicrohttpd
+brew install libhttpserver
+brew install pistache
