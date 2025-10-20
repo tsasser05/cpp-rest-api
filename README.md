@@ -134,7 +134,7 @@ Compile the API based on your system:
 
 ## Load Contacts
 
-- load_contacts.sh will generate 100 contacts to insert.  Use this as you will.
+- load_contacts.sh will generate 100 contacts and insert them into the application.  Use this as you will.
 
 
 ## Notes
