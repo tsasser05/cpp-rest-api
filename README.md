@@ -102,6 +102,11 @@ Compile the API based on your system:
    # Delete a contact
    curl -X DELETE http://localhost:8080/records/1
    ```
+3. **Run test automation**:
+   ```
+   go test -v
+   ```
+  
 
 ## API Endpoints
 
