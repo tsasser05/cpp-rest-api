@@ -108,8 +108,7 @@ private:
     void do_accept() {
         acceptor_.async_accept(net::make_strand(ioc_), [this](beast::error_code ec, tcp::socket socket) {
             if (!ec) {
-	      //std::make_shared<Session>(std::move(socket))->run();
-		auto listener = std::make_shared<Listener>(ioc, tcp::endpoint{address, port});
+	        std::make_shared<Session>(std::move(socket))->run();
             }
             do_accept();
         });
@@ -123,7 +122,8 @@ int main() {
 
         net::io_context ioc{1};
 
-        std::make_shared<Listener>(ioc, tcp::endpoint{address, port})->run();
+        //std::make_shared<Listener>(ioc, tcp::endpoint{address, port})->run();
+	auto listener = std::make_shared<Listener>(ioc, tcp::endpoint{address, port});
         
         ioc.run();
     } catch (const std::exception& e) {

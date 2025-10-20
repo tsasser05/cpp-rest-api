@@ -1,128 +1,126 @@
-Contact Management API
-A lightweight C++ RESTful API for managing contact records, built with Pistache and nlohmann/json. The API supports CRUD operations (Create, Read, Update, Delete) and querying of contact data, including Name (first, middle, last), Address (street, city, state, zip), Phone Number, and Email. Data is stored in-memory and does not persist across server restarts.
-Features
+# Contact Management API
 
-CRUD Operations:
-Create: POST /records to add a new contact.
-Read: GET /records/:id to retrieve a contact by ID.
-Update: PUT /records/:id to modify a contact.
-Delete: DELETE /records/:id to remove a contact.
+A lightweight C++ RESTful API for managing contact records, built with [Pistache](https://github.com/pistacheio/pistache) and [nlohmann/json](https://github.com/nlohmann/json). The API supports CRUD operations (Create, Read, Update, Delete) and querying of contact data, including Name (first, middle, last), Address (street, city, state, zip), Phone Number, and Email. Data is stored in-memory and does not persist across server restarts.
 
+## Features
 
-Querying: GET /records?param=value supports exact matches on first_name, middle_name, last_name, street, city, state, zip, phone, and email. Phone queries support full numbers or 3-digit area codes. Multiple parameters are combined with AND logic.
-Data Fields:
-id: Integer (auto-assigned, starting from 1).
-first_name, middle_name, last_name, street, city, state, zip, phone, email: Strings (optional).
+- **CRUD Operations**:
+  - **Create**: `POST /records` to add a new contact.
+  - **Read**: `GET /records/:id` to retrieve a contact by ID.
+  - **Update**: `PUT /records/:id` to modify a contact.
+  - **Delete**: `DELETE /records/:id` to remove a contact.
 
+- **Querying**: `GET /records?param=value` supports exact matches on `first_name`, `middle_name`, `last_name`, `street`, `city`, `state`, `zip`, `phone`, and `email`. Phone queries support full numbers or 3-digit area codes. Multiple parameters are combined with AND logic.
 
-Response Format: JSON with standard HTTP status codes (201, 200, 400, 404, 204).
+- **Data Fields**:
+  - `id`: Integer (auto-assigned, starting from 1).
+  - `first_name`, `middle_name`, `last_name`, `street`, `city`, `state`, `zip`, `phone`, `email`: Strings (optional).
 
-Prerequisites
+- **Response Format**: JSON with standard HTTP status codes (201, 200, 400, 404, 204).
 
-macOS with Homebrew installed:
-Intel Macs: Homebrew in /usr/local (default for Intel-based systems).
-Apple Silicon (arm64) Macs: Homebrew in /opt/homebrew (default for M1/M2 systems).
+## Prerequisites
 
+- **macOS** with Homebrew installed:
+  - **Intel Macs**: Homebrew in `/usr/local` (default for Intel-based systems).
+  - **Apple Silicon (arm64) Macs**: Homebrew in `/opt/homebrew` (default for M1/M2 systems).
+- **Compiler**: `g++` (Clang) with C++17 support, included in Xcode Command Line Tools.
+- **Libraries**:
+  - Pistache 0.4.26 (C++ REST framework).
+  - nlohmann/json (JSON parsing).
 
-Compiler: g++ (Clang) with C++17 support, included in Xcode Command Line Tools.
-Libraries:
-Pistache 0.4.26 (C++ REST framework).
-nlohmann/json (JSON parsing).
+## Installation
 
+1. **Install Dependencies via Homebrew**:
+   ```bash
+   brew install pistache nlohmann-json
+   ```
 
+2. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/tsasser05/cpp-rest-api
+   cd cpp-rest-api
+   ```
 
-Installation
+3. **Verify Dependencies**:
+   Check libraries and headers based on your system:
+   - **Intel Macs**:
+     ```bash
+     ls /usr/local/lib/libpistache*  # Should show libpistache.a or .dylib
+     ls /usr/local/include/nlohmann  # Should show json.hpp
+     ```
+   - **Apple Silicon (arm64) Macs**:
+     ```bash
+     ls /opt/homebrew/lib/libpistache*  # Should show libpistache.a or .dylib
+     ls /opt/homebrew/include/nlohmann  # Should show json.hpp
+     ```
 
-Install Dependencies via Homebrew:
-brew install pistache nlohmann-json
+## Build
 
-
-Clone the Repository:
-git clone <repository-url>
-cd contact-management-api
-
-
-Verify Dependencies:Check libraries and headers based on your system:
-
-Intel Macs:ls /usr/local/lib/libpistache*  # Should show libpistache.a or .dylib
-ls /usr/local/include/nlohmann  # Should show json.hpp
-
-
-Apple Silicon (arm64) Macs:ls /opt/homebrew/lib/libpistache*  # Should show libpistache.a or .dylib
-ls /opt/homebrew/include/nlohmann  # Should show json.hpp
-
-
-
-
-
-Build
 Compile the API based on your system:
+- **Intel Macs**:
+  ```bash
+  g++ -std=c++17 main.cpp -o api -lpistache -lpthread -I/usr/local/include -L/usr/local/lib
+  ```
+- **Apple Silicon (arm64) Macs**:
+  ```bash
+  g++ -std=c++17 main.cpp -o api -lpistache -lpthread -I/opt/homebrew/include -L/opt/homebrew/lib
+  ```
 
-Intel Macs:g++ -std=c++17 main.cpp -o api -lpistache -lpthread -I/usr/local/include -L/usr/local/lib
+## Usage
 
+1. **Run the Server**:
+   ```bash
+   ./api
+   ```
+   - The server listens on `http://localhost:8080`.
+   - Stop with `Ctrl+C`.
 
-Apple Silicon (arm64) Macs:g++ -std=c++17 main.cpp -o api -lpistache -lpthread -I/opt/homebrew/include -L/opt/homebrew/lib
+2. **Test with curl**:
+   ```bash
+   # Create a contact
+   curl -X POST http://localhost:8080/records -H "Content-Type: application/json" \
+     -d '{"first_name":"John","last_name":"Doe","phone":"1234567890","email":"john@example.com","street":"123 Main St","city":"Anytown","state":"CA","zip":"12345"}'
 
+   # Query by first name and area code
+   curl "http://localhost:8080/records?first_name=John&phone=123"
 
+   # Read a contact by ID
+   curl http://localhost:8080/records/1
 
-Usage
+   # Update a contact
+   curl -X PUT http://localhost:8080/records/1 -H "Content-Type: application/json" \
+     -d '{"first_name":"Jane"}'
 
-Run the Server:
-./api
+   # Delete a contact
+   curl -X DELETE http://localhost:8080/records/1
+   ```
 
+## API Endpoints
 
-The server listens on http://localhost:8080.
-Stop with Ctrl+C.
+- **POST /records**: Create a new contact. Returns 201 with the created record.
+  - Body: JSON object with optional fields (e.g., `{"first_name":"John","last_name":"Doe"}`).
+  - Error: 400 for invalid JSON.
 
+- **GET /records/:id**: Retrieve a contact by ID. Returns 200 with the record or 404 if not found.
 
-Test with curl:
-# Create a contact
-curl -X POST http://localhost:8080/records -H "Content-Type: application/json" \
-  -d '{"first_name":"John","last_name":"Doe","phone":"1234567890","email":"john@example.com","street":"123 Main St","city":"Anytown","state":"CA","zip":"12345"}'
+- **PUT /records/:id**: Update a contact. Updates only provided fields. Returns 200 with updated record or 404 if not found.
+  - Body: JSON with fields to update.
+  - Error: 400 for invalid JSON.
 
-# Query by first name and area code
-curl "http://localhost:8080/records?first_name=John&phone=123"
+- **DELETE /records/:id**: Delete a contact by ID. Returns 204 on success or 404 if not found.
 
-# Read a contact by ID
-curl http://localhost:8080/records/1
+- **GET /records**: Query contacts. Returns 200 with an array of matching records.
+  - Query parameters: `first_name`, `middle_name`, `last_name`, `street`, `city`, `state`, `zip`, `phone`, `email`.
+  - Phone: Matches full number or 3-digit area code.
+  - Example: `GET /records?first_name=John&phone=123`.
 
-# Update a contact
-curl -X PUT http://localhost:8080/records/1 -H "Content-Type: application/json" \
-  -d '{"first_name":"Jane"}'
+## Notes
 
-# Delete a contact
-curl -X DELETE http://localhost:8080/records/1
+- **Data Storage**: In-memory only; data is lost on server restart.
+- **Error Handling**: Returns standard HTTP status codes and JSON/text error messages.
+- **Performance**: Suitable for small-scale use due to in-memory storage.
+- **Future Improvements**: Add file or database persistence, input validation (e.g., phone format), or HTTPS support.
 
+## License
 
-
-API Endpoints
-
-POST /records: Create a new contact. Returns 201 with the created record.
-Body: JSON object with optional fields (e.g., {"first_name":"John","last_name":"Doe"}).
-Error: 400 for invalid JSON.
-
-
-GET /records/:id: Retrieve a contact by ID. Returns 200 with the record or 404 if not found.
-PUT /records/:id: Update a contact. Updates only provided fields. Returns 200 with updated record or 404 if not found.
-Body: JSON with fields to update.
-Error: 400 for invalid JSON.
-
-
-DELETE /records/:id: Delete a contact by ID. Returns 204 on success or 404 if not found.
-GET /records: Query contacts. Returns 200 with an array of matching records.
-Query parameters: first_name, middle_name, last_name, street, city, state, zip, phone, email.
-Phone: Matches full number or 3-digit area code.
-Example: GET /records?first_name=John&phone=123.
-
-
-
-Notes
-
-Data Storage: In-memory only; data is lost on server restart.
-Error Handling: Returns standard HTTP status codes and JSON/text error messages.
-Performance: Suitable for small-scale use due to in-memory storage.
-Future Improvements: Add file or database persistence, input validation (e.g., phone format), or HTTPS support.
-
-License
-MIT License. See LICENSE for details.
-
+MIT License. See [LICENSE](LICENSE) for details.
