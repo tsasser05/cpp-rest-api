@@ -104,6 +104,7 @@ Compile the API based on your system:
    ```
 3. **Run test automation**:
    ```
+   cd cpp-rest-api-tests
    go test -v
    ```
   
