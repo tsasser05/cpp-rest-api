@@ -2,6 +2,10 @@
 
 A lightweight C++ RESTful API for managing contact records, built with [Pistache](https://github.com/pistacheio/pistache) and [nlohmann/json](https://github.com/nlohmann/json). The API supports CRUD operations (Create, Read, Update, Delete) and querying of contact data, including Name (first, middle, last), Address (street, city, state, zip), Phone Number, and Email. Data is stored in-memory and does not persist across server restarts.
 
+## Authors
+
+Grok did the work.  I just guided it to see if it would actually make a working API.  It actually helped me troubleshoot some issues with my Homebrew installation.  Next step is to try to get Boost to work.
+
 ## Features
 
 - **CRUD Operations**:
