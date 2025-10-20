@@ -131,6 +131,12 @@ Compile the API based on your system:
   - Phone: Matches full number or 3-digit area code.
   - Example: `GET /records?first_name=John&phone=123`.
 
+
+## Load Contacts
+
+- load_contacts.sh will generate 100 contacts to insert.  Use this as you will.
+
+
 ## Notes
 
 - **Data Storage**: In-memory only; data is lost on server restart.
