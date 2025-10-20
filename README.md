@@ -103,8 +103,10 @@ Compile the API based on your system:
    curl -X DELETE http://localhost:8080/records/1
    ```
 3. **Run test automation**:
-   Always run the test automation from a new instance of the API.  Restart the API first.
-   ```
+
+   - Always run the test automation from a new instance of the API.  Restart the API first.
+
+```
    cd cpp-rest-api-tests
    go test -v
    ```
