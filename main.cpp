@@ -1,132 +1,189 @@
-#include <boost/beast/core.hpp>
-#include <boost/beast/http.hpp>
-#include <boost/beast/version.hpp>
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/strand.hpp>
-#include <boost/config.hpp>
-#include <iostream>
-#include <memory>
+#include <pistache/endpoint.h>
+#include <pistache/router.h>
+#include <nlohmann/json.hpp>
+#include <vector>
 #include <string>
-#include <thread>
+#include <algorithm>
 
-namespace beast = boost::beast; // from <boost/beast.hpp>
-namespace http = beast::http;   // from <boost/beast/http.hpp>
-namespace net = boost::asio;    // from <boost/asio.hpp>
-using tcp = net::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
+using namespace Pistache;
+using json = nlohmann::json;
 
-// This function produces an HTTP response for the given request.
-http::response<http::string_body> handle_request(http::request<http::string_body> const& req) {
-    // Respond to GET request with "Hello, World!"
-    if (req.method() == http::verb::get) {
-        http::response<http::string_body> res{http::status::ok, req.version()};
-        res.set(http::field::server, "Beast");
-        res.set(http::field::content_type, "text/plain");
-        res.keep_alive(req.keep_alive());
-        res.body() = "Hello, World!";
-        res.prepare_payload();
-        return res;
-    }
+struct Record {
+    int id;
+    std::string first_name;
+    std::string middle_name;
+    std::string last_name;
+    std::string street;
+    std::string city;
+    std::string state;
+    std::string zip;
+    std::string phone;
+    std::string email;
 
-    // Default response for unsupported methods
-    return http::response<http::string_body>{http::status::bad_request, req.version()};
-}
-
-// This class handles an HTTP server connection.
-class Session : public std::enable_shared_from_this<Session> {
-    tcp::socket socket_;
-    beast::flat_buffer buffer_;
-    http::request<http::string_body> req_;
-
-public:
-    explicit Session(tcp::socket socket) : socket_(std::move(socket)) {}
-
-    void run() {
-        do_read();
-    }
-
-private:
-    void do_read() {
-        auto self(shared_from_this());
-        http::async_read(socket_, buffer_, req_, [this, self](beast::error_code ec, std::size_t) {
-            if (!ec) {
-                do_write(handle_request(req_));
-            }
-        });
-    }
-
-    void do_write(http::response<http::string_body> res) {
-        auto self(shared_from_this());
-        auto sp = std::make_shared<http::response<http::string_body>>(std::move(res));
-        http::async_write(socket_, *sp, [this, self, sp](beast::error_code ec, std::size_t) {
-            socket_.shutdown(tcp::socket::shutdown_send, ec);
-        });
+    json to_json() const {
+        return json{
+            {"id", id},
+            {"first_name", first_name},
+            {"middle_name", middle_name},
+            {"last_name", last_name},
+            {"street", street},
+            {"city", city},
+            {"state", state},
+            {"zip", zip},
+            {"phone", phone},
+            {"email", email}
+        };
     }
 };
 
-// This class accepts incoming connections and launches the sessions.
-class Listener : public std::enable_shared_from_this<Listener> {
-    net::io_context& ioc_;
-    tcp::acceptor acceptor_;
-
+class ApiHandler {
 public:
-    Listener(net::io_context& ioc, tcp::endpoint endpoint)
-        : ioc_(ioc), acceptor_(net::make_strand(ioc)) {
-        beast::error_code ec;
+    explicit ApiHandler(std::vector<Record>& records, int& next_id)
+        : records_(records), next_id_(next_id) {}
 
-        // Open the acceptor
-        acceptor_.open(endpoint.protocol(), ec);
-        if (ec) {
-            std::cerr << "Open error: " << ec.message() << std::endl;
+    void create(const Rest::Request& request, Http::ResponseWriter response) {
+        try {
+            auto body = json::parse(request.body());
+            Record r;
+            r.id = next_id_++;
+            r.first_name = body.value("first_name", "");
+            r.middle_name = body.value("middle_name", "");
+            r.last_name = body.value("last_name", "");
+            r.street = body.value("street", "");
+            r.city = body.value("city", "");
+            r.state = body.value("state", "");
+            r.zip = body.value("zip", "");
+            r.phone = body.value("phone", "");
+            r.email = body.value("email", "");
+
+            records_.push_back(r);
+            response.send(Http::Code::Created, r.to_json().dump());
+        } catch (const std::exception& e) {
+            response.send(Http::Code::Bad_Request, "Invalid JSON");
+        }
+    }
+
+    void read(const Rest::Request& request, Http::ResponseWriter response) {
+        int id = request.param(":id").as<int>();
+        auto it = std::find_if(records_.begin(), records_.end(),
+                               [id](const Record& r) { return r.id == id; });
+        if (it == records_.end()) {
+            response.send(Http::Code::Not_Found, "Record not found");
             return;
         }
+        response.send(Http::Code::Ok, it->to_json().dump());
+    }
 
-        // Allow address reuse
-        acceptor_.set_option(net::socket_base::reuse_address(true), ec);
-        if (ec) {
-            std::cerr << "Set option error: " << ec.message() << std::endl;
+    void update(const Rest::Request& request, Http::ResponseWriter response) {
+        int id = request.param(":id").as<int>();
+        try {
+            auto body = json::parse(request.body());
+            auto it = std::find_if(records_.begin(), records_.end(),
+                                   [id](const Record& r) { return r.id == id; });
+            if (it == records_.end()) {
+                response.send(Http::Code::Not_Found, "Record not found");
+                return;
+            }
+
+            if (body.contains("first_name")) it->first_name = body["first_name"].get<std::string>();
+            if (body.contains("middle_name")) it->middle_name = body["middle_name"].get<std::string>();
+            if (body.contains("last_name")) it->last_name = body["last_name"].get<std::string>();
+            if (body.contains("street")) it->street = body["street"].get<std::string>();
+            if (body.contains("city")) it->city = body["city"].get<std::string>();
+            if (body.contains("state")) it->state = body["state"].get<std::string>();
+            if (body.contains("zip")) it->zip = body["zip"].get<std::string>();
+            if (body.contains("phone")) it->phone = body["phone"].get<std::string>();
+            if (body.contains("email")) it->email = body["email"].get<std::string>();
+
+            response.send(Http::Code::Ok, it->to_json().dump());
+        } catch (const std::exception& e) {
+            response.send(Http::Code::Bad_Request, "Invalid JSON");
+        }
+    }
+
+    void del(const Rest::Request& request, Http::ResponseWriter response) {
+        int id = request.param(":id").as<int>();
+        auto it = std::find_if(records_.begin(), records_.end(),
+                               [id](const Record& r) { return r.id == id; });
+        if (it == records_.end()) {
+            response.send(Http::Code::Not_Found, "Record not found");
             return;
         }
+        records_.erase(it);
+        response.send(Http::Code::No_Content, "");
+    }
 
-        // Bind to the server address
-        acceptor_.bind(endpoint, ec);
-        if (ec) {
-            std::cerr << "Bind error: " << ec.message() << std::endl;
-            return;
+    void query(const Rest::Request& request, Http::ResponseWriter response) {
+        std::string first_name = request.query().get("first_name").value_or("");
+        std::string middle_name = request.query().get("middle_name").value_or("");
+        std::string last_name = request.query().get("last_name").value_or("");
+        std::string street = request.query().get("street").value_or("");
+        std::string city = request.query().get("city").value_or("");
+        std::string state = request.query().get("state").value_or("");
+        std::string zip = request.query().get("zip").value_or("");
+        std::string phone = request.query().get("phone").value_or("");
+        std::string email = request.query().get("email").value_or("");
+
+        json results = json::array();
+        for (const auto& r : records_) {
+            bool match = true;
+
+            if (!first_name.empty() && r.first_name != first_name) match = false;
+            if (!middle_name.empty() && r.middle_name != middle_name) match = false;
+            if (!last_name.empty() && r.last_name != last_name) match = false;
+            if (!street.empty() && r.street != street) match = false;
+            if (!city.empty() && r.city != city) match = false;
+            if (!state.empty() && r.state != state) match = false;
+            if (!zip.empty() && r.zip != zip) match = false;
+            if (!email.empty() && r.email != email) match = false;
+
+            if (!phone.empty()) {
+                if (r.phone == phone) {
+                    // Full match
+                } else if (phone.length() == 3 && r.phone.length() >= 3 && r.phone.substr(0, 3) == phone) {
+                    // Area code match
+                } else {
+                    match = false;
+                }
+            }
+
+            if (match) {
+                results.push_back(r.to_json());
+            }
         }
 
-        // Start listening for connections
-        acceptor_.listen(net::socket_base::max_listen_connections, ec);
-        if (ec) {
-            std::cerr << "Listen error: " << ec.message() << std::endl;
-            return;
-        }
-
-        do_accept();
+        response.send(Http::Code::Ok, results.dump());
     }
 
 private:
-    void do_accept() {
-        acceptor_.async_accept(net::make_strand(ioc_), [this](beast::error_code ec, tcp::socket socket) {
-            if (!ec) {
-	        std::make_shared<Session>(std::move(socket))->run();
-            }
-            do_accept();
-        });
-    }
+    std::vector<Record>& records_;
+    int& next_id_;
 };
 
 int main() {
-    try {
-        auto const address = net::ip::make_address("0.0.0.0");
-        unsigned short port = 8080;
+    std::vector<Record> records;
+    int next_id = 1;
 
-        net::io_context ioc{1};
+    // Initialize Pistache server
+    Http::Endpoint server(Address(Ipv4::any(), Port(8080)));
+    auto opts = Http::Endpoint::options().threads(4);
+    server.init(opts);
 
-        //std::make_shared<Listener>(ioc, tcp::endpoint{address, port})->run();
-	auto listener = std::make_shared<Listener>(ioc, tcp::endpoint{address, port});
-        
-        ioc.run();
-    } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-    }
+    // Set up router
+    Rest::Router router;
+    ApiHandler handler(records, next_id);
+
+    // Define routes
+    Rest::Routes::Post(router, "/records", Rest::Routes::bind(&ApiHandler::create, &handler));
+    Rest::Routes::Get(router, "/records/:id", Rest::Routes::bind(&ApiHandler::read, &handler));
+    Rest::Routes::Put(router, "/records/:id", Rest::Routes::bind(&ApiHandler::update, &handler));
+    Rest::Routes::Delete(router, "/records/:id", Rest::Routes::bind(&ApiHandler::del, &handler));
+    Rest::Routes::Get(router, "/records", Rest::Routes::bind(&ApiHandler::query, &handler));
+
+    // Start server
+    server.setHandler(router.handler());
+    server.serve();
+
+    return 0;
 }
+
