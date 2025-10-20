@@ -11,9 +11,10 @@ Grok did the work.  I just guided it to see if it would actually make a working 
 - **CRUD Operations**:
   - **Create**: `POST /records` to add a new contact.
   - **Read**: `GET /records/:id` to retrieve a contact by ID.
-  - **Update**: `PUT /records/:id` to modify a contact.
+  - **Read**: `GET /records/` to retrieve all contacts.
+- **Update**: `PUT /records/:id` to modify a contact.
   - **Delete**: `DELETE /records/:id` to remove a contact.
-
+  
 - **Querying**: `GET /records?param=value` supports exact matches on `first_name`, `middle_name`, `last_name`, `street`, `city`, `state`, `zip`, `phone`, and `email`. Phone queries support full numbers or 3-digit area codes. Multiple parameters are combined with AND logic.
 
 - **Data Fields**:
@@ -91,6 +92,9 @@ Compile the API based on your system:
    # Read a contact by ID
    curl http://localhost:8080/records/1
 
+   # Get all contacts with pretty print
+   curl -s http://localhost:8080/records/ | jq .
+   
    # Update a contact
    curl -X PUT http://localhost:8080/records/1 -H "Content-Type: application/json" \
      -d '{"first_name":"Jane"}'
