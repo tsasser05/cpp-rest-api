@@ -4,7 +4,7 @@ A lightweight C++ RESTful API for managing contact records, built with [Pistache
 
 ## Authors
 
-Grok did the work.  I just guided it to see if it would actually make a working API.  It actually helped me troubleshoot some issues with my Homebrew installation.  Next step is to try to get Boost to work.
+Grok did the work.  I just guided it to see if it would actually make a working API.
 
 ## Features
 
