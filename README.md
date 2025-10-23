@@ -110,9 +110,16 @@ Compile the API based on your system:
 
    - Always run the test automation from a new instance of the API.  Restart the API first.
 
-```
+   ```
+   Old method prior to adding godog:
    cd cpp-rest-api-tests
    go test -v
+   ```
+   ```
+   # This runs EVERYTHING (contacts_test.go + godog)
+   go test -v ./...
+   # OR just godog tests
+   go test -v ./godog
    ```
   
 

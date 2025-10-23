@@ -1,4 +1,4 @@
-package main
+package godog
 
 import (
 	"testing"
@@ -13,9 +13,9 @@ func TestContactFeatures(t *testing.T) {
 			step_definitions.InitializeScenario(ctx)
 		},
 		Options: &godog.Options{
-			Format:   "cucumber",
+			Format:   "progress,cucumber:report.json",
 			Tags:     "~@ignore",
-			Paths:    []string{"features"},
+			Paths:    []string{"../features"},
 		},
 	}
 
