@@ -113,6 +113,12 @@ public:
         response.send(Http::Code::No_Content, "");
     }
 
+    void reset(const Rest::Request& request, Http::ResponseWriter response) {
+        records_.clear();
+        next_id_ = 1;
+        response.send(Http::Code::No_Content, "");
+    }
+  
     void query(const Rest::Request& request, Http::ResponseWriter response) {
         std::string first_name = request.query().get("first_name").value_or("");
         std::string middle_name = request.query().get("middle_name").value_or("");
@@ -178,6 +184,7 @@ int main() {
     Rest::Routes::Get(router, "/records/:id", Rest::Routes::bind(&ApiHandler::read, &handler));
     Rest::Routes::Put(router, "/records/:id", Rest::Routes::bind(&ApiHandler::update, &handler));
     Rest::Routes::Delete(router, "/records/:id", Rest::Routes::bind(&ApiHandler::del, &handler));
+    Rest::Routes::Delete(router, "/reset", Rest::Routes::bind(&ApiHandler::reset, &handler));
     Rest::Routes::Get(router, "/records", Rest::Routes::bind(&ApiHandler::query, &handler));
 
     // Start server

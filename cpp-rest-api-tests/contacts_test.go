@@ -2,7 +2,6 @@ package cpprestapitests
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -115,6 +114,11 @@ func (a *apiTest) iSendADELETERequestTo(path string) error {
 }
 
 func (a *apiTest) aContactExistsWithID(id string) error {
+	// SKIP if {lastCreatedID} - use existing contact from previous step
+	if id == "{lastCreatedID}" {
+		return nil
+	}
+	
 	contact := map[string]interface{}{
 		"first_name": "John",
 		"last_name":  "Doe",
@@ -267,6 +271,50 @@ func (a *apiTest) aSubsequentGETRequestToShouldReturn(path string, statusCode in
 	return nil
 }
 
+func (a *apiTest) iSendADELETERequestToReset(path string) error {
+	// Handle "/reset" specifically - no path replacement needed
+	if strings.Contains(path, "/reset") {
+		path = "/reset"
+	}
+	req, err := http.NewRequest("DELETE", a.baseURL+path, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create DELETE request: %v", err)
+	}
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send DELETE request: %v", err)
+	}
+	a.lastResponse = resp
+	body, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		return fmt.Errorf("failed to read DELETE response: %v", err)
+	}
+	a.lastResponseBody = body
+	return nil
+}
+
+func (a *apiTest) theDatabaseShouldBeEmpty() error {
+	resp, err := http.Get(a.baseURL + "/records")
+	if err != nil {
+		return fmt.Errorf("failed to GET /records: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("expected 200, got %d", resp.StatusCode)
+	}
+
+	var records []map[string]interface{}
+	body, _ := io.ReadAll(resp.Body)
+	json.Unmarshal(body, &records)
+
+	if len(records) != 0 {
+		return fmt.Errorf("expected 0 records, got %d", len(records))
+	}
+	return nil
+}
+
 func compareJSON(actual, expected interface{}) error {
 	actualJSON, err := json.Marshal(actual)
 	if err != nil {
@@ -285,22 +333,12 @@ func compareJSON(actual, expected interface{}) error {
 }
 
 func (a *apiTest) InitializeScenario(s *godog.ScenarioContext) {
-	s.After(func(ctx context.Context, sc *godog.Scenario, err error) (context.Context, error) {
-		if a.lastCreatedID != 0 {
-			req, _ := http.NewRequest("DELETE", a.baseURL+fmt.Sprintf("/records/%d", a.lastCreatedID), nil)
-			resp, _ := a.client.Do(req)
-			if resp != nil {
-				resp.Body.Close()
-			}
-		}
-		return ctx, nil
-	})
 	s.Step(`^the API is running$`, a.theAPIIsRunning)
 	s.Step(`^I send a POST request to "([^"]*)" with contact details$`, a.iSendAPOSTRequestToWithContactDetails)
 	s.Step(`^I send a GET request to "([^"]*)"$`, a.iSendAGETRequestTo)
 	s.Step(`^I send a PUT request to "([^"]*)" with updated details$`, a.iSendAPUTRequestToWithUpdatedDetails)
 	s.Step(`^I send a DELETE request to "([^"]*)"$`, a.iSendADELETERequestTo)
-	s.Step(`^a contact exists with ID \{([^}]*)\}$`, a.aContactExistsWithID)
+	s.Step(`^a contact exists with ID (.*)$`, a.aContactExistsWithID)
 	s.Step(`^a contact exists with first name "([^"]*)" and phone "([^"]*)"$`, a.aContactExistsWithFirstNameAndPhone)
 	s.Step(`^the response status code should be (\d+)$`, a.theResponseStatusCodeShouldBe)
 	s.Step(`^the response should contain the contact ID$`, a.theResponseShouldContainTheContactID)
@@ -308,6 +346,21 @@ func (a *apiTest) InitializeScenario(s *godog.ScenarioContext) {
 	s.Step(`^the response should contain a list with the contact$`, a.theResponseShouldContainAListWithTheContact)
 	s.Step(`^the response should contain the updated contact details$`, a.theResponseShouldContainTheUpdatedContactDetails)
 	s.Step(`^a subsequent GET request to "([^"]*)" should return (\d+)$`, a.aSubsequentGETRequestToShouldReturn)
+	s.Step(`^I send a DELETE request to reset$`, a.iSendADELETERequestToReset)
+	s.Step(`^the database should be empty$`, a.theDatabaseShouldBeEmpty)
+
+	// *** DISABLED AUTO-CLEANUP ***
+	/*
+	s.After(func(ctx context.Context, sc *godog.Scenario, err error) (context.Context, error) {
+		req, _ := http.NewRequest("DELETE", a.baseURL+"/reset", nil)
+		resp, _ := a.client.Do(req)
+		if resp != nil {
+			resp.Body.Close()
+		}
+		a.lastCreatedID = 0
+		return ctx, nil
+	})
+	*/
 }
 
 func TestMain(m *testing.M) {
@@ -323,9 +376,8 @@ func TestMain(m *testing.M) {
 		},
 		Options: &godog.Options{
 			Format: "pretty",
-			Paths:  []string{"features/contacts.feature"},
+			Paths:  []string{"features/contacts.feature", "features/reset.feature"},
 		},
 	}.Run()
 	os.Exit(status)
 }
-
