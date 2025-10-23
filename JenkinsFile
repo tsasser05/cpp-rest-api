@@ -1,0 +1,40 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Start Fresh API') {
+            steps {
+                sh '''
+                    docker stop api-container || true
+                    docker rm api-container || true
+                    docker run -d --name api-container --network container:jenkins -p 8080:8080 $(docker build -q -f Dockerfile.api .) ./api
+                '''
+                sh '''
+                    until curl -f http://localhost:8080/records >/dev/null 2>&1; do
+                        echo "Waiting for API..."
+                        sleep 2
+                    done
+                    echo "API is ready!"
+                '''
+            }
+        }
+        
+        stage('Run Godog Tests') {
+            steps {
+                dir('/var/jenkins_home/tests') {
+                    sh '''
+                        godog --format=cucumber:report.json ./features
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cucumber fileIncludePattern: '**/*.json',
+                     sortingMethod: 'ALPHABETICAL'
+            sh 'docker stop api-container || true && docker rm api-container || true'
+        }
+    }
+}
