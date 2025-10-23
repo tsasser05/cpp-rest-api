@@ -12,8 +12,9 @@ Grok did the work.  I just guided it to see if it would actually make a working 
   - **Create**: `POST /records` to add a new contact.
   - **Read**: `GET /records/:id` to retrieve a contact by ID.
   - **Read**: `GET /records/` to retrieve all contacts.
-- **Update**: `PUT /records/:id` to modify a contact.
+  - **Update**: `PUT /records/:id` to modify a contact.
   - **Delete**: `DELETE /records/:id` to remove a contact.
+  - **Reset Endpoint**: `DELETE /reset` clears all records and resets the ID counter to 1.
   
 - **Querying**: `GET /records?param=value` supports exact matches on `first_name`, `middle_name`, `last_name`, `street`, `city`, `state`, `zip`, `phone`, and `email`. Phone queries support full numbers or 3-digit area codes. Multiple parameters are combined with AND logic.
 
@@ -130,6 +131,8 @@ Compile the API based on your system:
   - Query parameters: `first_name`, `middle_name`, `last_name`, `street`, `city`, `state`, `zip`, `phone`, `email`.
   - Phone: Matches full number or 3-digit area code.
   - Example: `GET /records?first_name=John&phone=123`.
+
+- **DELETE /reset**: Clear out the database.  Returns 204 No content.
 
 
 ## Load Contacts
