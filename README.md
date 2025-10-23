@@ -102,6 +102,9 @@ Compile the API based on your system:
 
    # Delete a contact
    curl -X DELETE http://localhost:8080/records/1
+
+   # Delete the database
+   curl -X DELETE http://localhost:8080/reset
    ```
 3. **Run test automation**:
 
