@@ -140,40 +140,6 @@ public:
         std::cout << "[DELETE /reset] Database cleared" << std::endl;
         response.send(Http::Code::No_Content, "");
     }
-  
-    /*
-    void query(const Rest::Request& request, Http::ResponseWriter response) {
-        std::string first_name = request.query().get("first_name").value_or("");
-        std::string phone = request.query().get("phone").value_or("");
-        std::cout << "[GET /records?phone=" << phone << "] Querying records" << std::endl;
-
-        json results = json::array();
-        for (const auto& r : records_) {
-            bool match = true;
-
-            if (!first_name.empty() && r.first_name != first_name) match = false;
-
-            if (!phone.empty()) {
-                if (r.phone == phone || (phone.length() == 3 && r.phone.length() >= 3 && r.phone.substr(0, 3) == phone)) {
-                    // Full match or area code match
-                } else {
-                    match = false;
-                }
-            }
-
-
-
-            if (match) {
-                results.push_back(r.to_json());
-            }
-        }
-
-        std::cout << "[GET /records] Found " << results.size() << " matching records" << std::endl;
-        response.send(Http::Code::Ok, results.dump());
-    }
-
-    */
-
 
 
 void query(const Rest::Request& request, Http::ResponseWriter response) {
