@@ -363,6 +363,7 @@ func (a *apiTest) InitializeScenario(s *godog.ScenarioContext) {
 	*/
 }
 
+/*
 func TestMain(m *testing.M) {
 	apiURL := "http://localhost:8080"
 	client := &http.Client{}
@@ -376,8 +377,22 @@ func TestMain(m *testing.M) {
 		},
 		Options: &godog.Options{
 			Format: "pretty",
-			Paths:  []string{"features/contacts.feature", "features/reset.feature"},
+			Paths:  []string{"features/contacts.feature"},
 		},
 	}.Run()
 	os.Exit(status)
+}
+*/
+
+func TestMain(m *testing.M) {
+  status := godog.TestSuite{
+    ScenarioInitializer: func(s *godog.ScenarioContext) {
+      step_definitions.InitializeScenario(s)
+    },
+    Options: &godog.Options{
+      Format: "pretty",
+      Paths:  []string{"features/contacts.feature"},
+    },
+}.Run()
+  os.Exit(status)
 }

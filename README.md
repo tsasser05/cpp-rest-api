@@ -87,8 +87,11 @@ Compile the API based on your system:
    curl -X POST http://localhost:8080/records -H "Content-Type: application/json" \
      -d '{"first_name":"John","last_name":"Doe","phone":"1234567890","email":"john@example.com","street":"123 Main St","city":"Anytown","state":"CA","zip":"12345"}'
 
-   # Query by first name and area code
-   curl "http://localhost:8080/records?first_name=John&phone=123"
+   # Query by first name and area code.  Pipe through jq for pretty formatting.
+   curl -s "http://localhost:8080/records?first_name=John&phone=123" | jq .
+
+   # Queries can be any combination of fields
+   curl -s "http://localhost:8080/records?city=Springfield&first_name=Sarah&state=CA" | jq .
 
    # Read a contact by ID
    curl http://localhost:8080/records/1

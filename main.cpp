@@ -4,6 +4,9 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <iostream>
+#include <sstream>
+#include <unordered_map>
 
 using namespace Pistache;
 using json = nlohmann::json;
@@ -42,6 +45,7 @@ public:
         : records_(records), next_id_(next_id) {}
 
     void create(const Rest::Request& request, Http::ResponseWriter response) {
+        std::cout << "[POST /records] Creating record" << std::endl;
         try {
             auto body = json::parse(request.body());
             Record r;
@@ -57,109 +61,189 @@ public:
             r.email = body.value("email", "");
 
             records_.push_back(r);
+            std::cout << "[POST /records] Created record ID: " << r.id << std::endl;
             response.send(Http::Code::Created, r.to_json().dump());
         } catch (const std::exception& e) {
+            std::cout << "[POST /records] ERROR: Invalid JSON - " << e.what() << std::endl;
             response.send(Http::Code::Bad_Request, "Invalid JSON");
         }
     }
 
     void read(const Rest::Request& request, Http::ResponseWriter response) {
         int id = request.param(":id").as<int>();
+        std::cout << "[GET /records/" << id << "] Reading record" << std::endl;
+        
         auto it = std::find_if(records_.begin(), records_.end(),
                                [id](const Record& r) { return r.id == id; });
         if (it == records_.end()) {
+            std::cout << "[GET /records/" << id << "] ERROR: Record not found" << std::endl;
             response.send(Http::Code::Not_Found, "Record not found");
             return;
         }
+        std::cout << "[GET /records/" << id << "] Found record" << std::endl;
         response.send(Http::Code::Ok, it->to_json().dump());
     }
 
     void update(const Rest::Request& request, Http::ResponseWriter response) {
         int id = request.param(":id").as<int>();
+        std::cout << "[PUT /records/" << id << "] Updating record" << std::endl;
+        
         try {
             auto body = json::parse(request.body());
             auto it = std::find_if(records_.begin(), records_.end(),
                                    [id](const Record& r) { return r.id == id; });
             if (it == records_.end()) {
+                std::cout << "[PUT /records/" << id << "] ERROR: Record not found" << std::endl;
                 response.send(Http::Code::Not_Found, "Record not found");
                 return;
             }
 
-            if (body.contains("first_name")) it->first_name = body["first_name"].get<std::string>();
-            if (body.contains("middle_name")) it->middle_name = body["middle_name"].get<std::string>();
-            if (body.contains("last_name")) it->last_name = body["last_name"].get<std::string>();
-            if (body.contains("street")) it->street = body["street"].get<std::string>();
-            if (body.contains("city")) it->city = body["city"].get<std::string>();
-            if (body.contains("state")) it->state = body["state"].get<std::string>();
-            if (body.contains("zip")) it->zip = body["zip"].get<std::string>();
-            if (body.contains("phone")) it->phone = body["phone"].get<std::string>();
-            if (body.contains("email")) it->email = body["email"].get<std::string>();
+            // FIX: Use .value() instead of .contains() + .get()
+            it->first_name = body.value("first_name", it->first_name);
+            it->middle_name = body.value("middle_name", it->middle_name);
+            it->last_name = body.value("last_name", it->last_name);
+            it->street = body.value("street", it->street);
+            it->city = body.value("city", it->city);
+            it->state = body.value("state", it->state);
+            it->zip = body.value("zip", it->zip);
+            it->phone = body.value("phone", it->phone);
+            it->email = body.value("email", it->email);
 
+            std::cout << "[PUT /records/" << id << "] Updated record" << std::endl;
             response.send(Http::Code::Ok, it->to_json().dump());
         } catch (const std::exception& e) {
+            std::cout << "[PUT /records/" << id << "] ERROR: Invalid JSON - " << e.what() << std::endl;
             response.send(Http::Code::Bad_Request, "Invalid JSON");
         }
     }
 
     void del(const Rest::Request& request, Http::ResponseWriter response) {
         int id = request.param(":id").as<int>();
+        std::cout << "[DELETE /records/" << id << "] Deleting record" << std::endl;
+        
         auto it = std::find_if(records_.begin(), records_.end(),
                                [id](const Record& r) { return r.id == id; });
         if (it == records_.end()) {
+            std::cout << "[DELETE /records/" << id << "] ERROR: Record not found" << std::endl;
             response.send(Http::Code::Not_Found, "Record not found");
             return;
         }
         records_.erase(it);
+        std::cout << "[DELETE /records/" << id << "] Deleted record" << std::endl;
         response.send(Http::Code::No_Content, "");
     }
 
     void reset(const Rest::Request& request, Http::ResponseWriter response) {
+        std::cout << "[DELETE /reset] Resetting database" << std::endl;
         records_.clear();
         next_id_ = 1;
+        std::cout << "[DELETE /reset] Database cleared" << std::endl;
         response.send(Http::Code::No_Content, "");
     }
   
+    /*
     void query(const Rest::Request& request, Http::ResponseWriter response) {
         std::string first_name = request.query().get("first_name").value_or("");
-        std::string middle_name = request.query().get("middle_name").value_or("");
-        std::string last_name = request.query().get("last_name").value_or("");
-        std::string street = request.query().get("street").value_or("");
-        std::string city = request.query().get("city").value_or("");
-        std::string state = request.query().get("state").value_or("");
-        std::string zip = request.query().get("zip").value_or("");
         std::string phone = request.query().get("phone").value_or("");
-        std::string email = request.query().get("email").value_or("");
+        std::cout << "[GET /records?phone=" << phone << "] Querying records" << std::endl;
 
         json results = json::array();
         for (const auto& r : records_) {
             bool match = true;
 
             if (!first_name.empty() && r.first_name != first_name) match = false;
-            if (!middle_name.empty() && r.middle_name != middle_name) match = false;
-            if (!last_name.empty() && r.last_name != last_name) match = false;
-            if (!street.empty() && r.street != street) match = false;
-            if (!city.empty() && r.city != city) match = false;
-            if (!state.empty() && r.state != state) match = false;
-            if (!zip.empty() && r.zip != zip) match = false;
-            if (!email.empty() && r.email != email) match = false;
 
             if (!phone.empty()) {
-                if (r.phone == phone) {
-                    // Full match
-                } else if (phone.length() == 3 && r.phone.length() >= 3 && r.phone.substr(0, 3) == phone) {
-                    // Area code match
+                if (r.phone == phone || (phone.length() == 3 && r.phone.length() >= 3 && r.phone.substr(0, 3) == phone)) {
+                    // Full match or area code match
                 } else {
                     match = false;
                 }
             }
+
+
 
             if (match) {
                 results.push_back(r.to_json());
             }
         }
 
+        std::cout << "[GET /records] Found " << results.size() << " matching records" << std::endl;
         response.send(Http::Code::Ok, results.dump());
     }
+
+    */
+
+
+
+void query(const Rest::Request& request, Http::ResponseWriter response) {
+    std::cout << "[GET /records] Flexible query started" << std::endl;
+    json results = json::array();
+
+    for (const auto& r : records_) {
+        bool match = true;
+
+        if (request.query().has("id")) {
+            if (std::to_string(r.id) != request.query().get("id").value())
+                match = false;
+        }
+
+        if (request.query().has("first_name")) {
+            if (r.first_name != request.query().get("first_name").value())
+                match = false;
+        }
+
+        if (request.query().has("middle_name")) {
+            if (r.middle_name != request.query().get("middle_name").value())
+                match = false;
+        }
+
+        if (request.query().has("last_name")) {
+            if (r.last_name != request.query().get("last_name").value())
+                match = false;
+        }
+
+        if (request.query().has("street")) {
+            if (r.street != request.query().get("street").value())
+                match = false;
+        }
+
+        if (request.query().has("city")) {
+            if (r.city != request.query().get("city").value())
+                match = false;
+        }
+
+        if (request.query().has("state")) {
+            if (r.state != request.query().get("state").value())
+                match = false;
+        }
+
+        if (request.query().has("zip")) {
+            if (r.zip != request.query().get("zip").value())
+                match = false;
+        }
+
+        if (request.query().has("phone")) {
+            std::string queryPhone = request.query().get("phone").value();
+            if (!(r.phone == queryPhone ||
+                  (queryPhone.length() == 3 && r.phone.substr(0, 3) == queryPhone)))
+                match = false;
+        }
+
+        if (request.query().has("email")) {
+            if (r.email != request.query().get("email").value())
+                match = false;
+        }
+
+        if (match)
+            results.push_back(r.to_json());
+    }
+
+    std::cout << "[GET /records] Found " << results.size() << " matching records" << std::endl;
+    response.send(Http::Code::Ok, results.dump());
+}
+
+
 
 private:
     std::vector<Record>& records_;
@@ -169,6 +253,8 @@ private:
 int main() {
     std::vector<Record> records;
     int next_id = 1;
+
+    std::cout << "Starting API server on http://localhost:8080" << std::endl;
 
     // Initialize Pistache server
     Http::Endpoint server(Address(Ipv4::any(), Port(8080)));

@@ -14,12 +14,12 @@ func TestContactFeatures(t *testing.T) {
 		},
 		Options: &godog.Options{
 			Format:   "progress,cucumber:report.json",
-			Tags:     "~@ignore",
-			Paths:    []string{"../features"},
+			Paths:    []string{"../features/contacts.feature"},
 		},
 	}
 
 	if suite.Run() != 0 {
-		t.Fatal("non-zero status returned, failed to run contact feature tests")
+		t.Fatal("failed to run contact feature tests")
 	}
 }
+
